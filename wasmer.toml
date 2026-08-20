@@ -1,5 +1,5 @@
 [package]
-name = "marketplace-app"
+name = "kienon/order"
 version = "0.1.0"
 description = "Multi-vendor marketplace Next.js application"
 
