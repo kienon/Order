@@ -1,0 +1,31 @@
+name: Publish to Wasmer
+
+on:
+  push:
+    branches:
+      - main  # Tukar ke 'master' kalau branch utama kau nama master
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Boleh tukar ikut versi Node projek kau
+
+      - name: Install dependencies & Build Next.js
+        run: |
+          npm install
+          npm run build
+
+      - name: Setup Wasmer CLI
+        uses: wasmerio/setup-wasmer@v3
+
+      - name: Publish to Wasmer
+        env:
+          WASMER_TOKEN: ${{ secrets.WASMER_TOKEN }}
+        run: wasmer publish
