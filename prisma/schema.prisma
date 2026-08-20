@@ -1,0 +1,191 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RoleType {
+  ADMIN
+  MERCHANT
+  BUYER
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAYMENT_PROOF_SUBMITTED
+  PAYMENT_VERIFIED
+  PROCESSING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+  PAYMENT_REJECTED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  NOT_PAID
+  PROOF_SUBMITTED
+  UNDER_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  phone         String?
+  isActive      Boolean   @default(true)
+  roles         UserRole[]
+  merchant      Merchant?
+  orders        Order[]
+  payments      Payment[]
+  auditLogs     AuditLog[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  name        RoleType   @unique
+  users       UserRole[]
+}
+
+model UserRole {
+  userId      String
+  roleId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model Merchant {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id])
+  businessName    String
+  businessLogo    String?
+  description     String?
+  address         String?
+  duitNowQrUrl    String?      // DuitNow QR payment image path
+  isApproved      Boolean      @default(false)
+  products        Product[]
+  orders          Order[]
+  payments        Payment[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Category {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  slug        String       @unique
+  products    Product[]
+}
+
+model Product {
+  id            String       @id @default(cuid())
+  merchantId    String
+  merchant      Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  name          String
+  sku           String       @unique
+  description   String?
+  price         Decimal      @db.Decimal(10, 2)
+  stock         Int          @default(0)
+  minOrderQty   Int          @default(1)
+  unitType      String       // carton, piece, box, kg, etc.
+  isActive      Boolean      @default(true)
+  images        String[]
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique
+  buyerId         String
+  buyer           User          @relation(fields: [buyerId], references: [id])
+  merchantId      String
+  merchant        Merchant      @relation(fields: [merchantId], references: [id])
+  status          OrderStatus   @default(PENDING_PAYMENT)
+  subtotal        Decimal       @db.Decimal(10, 2)
+  deliveryFee     Decimal       @db.Decimal(10, 2)
+  grandTotal      Decimal       @db.Decimal(10, 2)
+  fulfillmentType String        // DELIVERY or SELF_PICKUP
+  deliveryAddress String?
+  notes           String?
+  items           OrderItem[]
+  payment         Payment?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  subtotal  Decimal  @db.Decimal(10, 2)
+}
+
+model Payment {
+  id             String          @id @default(cuid())
+  orderId        String          @unique
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  buyerId        String
+  buyer          User            @relation(fields: [buyerId], references: [id])
+  merchantId     String
+  merchant       Merchant        @relation(fields: [merchantId], references: [id])
+  amount         Decimal         @db.Decimal(10, 2)
+  proofUrl       String?         // JPG, PNG, PDF proof
+  status         PaymentStatus   @default(NOT_PAID)
+  rejectionNote  String?
+  verifiedAt     DateTime?
+  history        PaymentHistory[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model PaymentHistory {
+  id          String        @id @default(cuid())
+  paymentId   String
+  payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  status      PaymentStatus
+  note        String?
+  actorId     String
+  createdAt   DateTime      @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
