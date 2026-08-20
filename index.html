@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borong & Runcit Express - kienon.github.io</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans pb-24">
+
+    <!-- Header / Navbar -->
+    <header class="bg-emerald-600 text-white p-4 shadow-md sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-store text-xl"></i>
+                <h1 class="text-lg font-bold">Borong & Runcit Express</h1>
+            </div>
+            <!-- Butang Buka Troli -->
+            <button onclick="toggleCartModal(true)" class="bg-emerald-700 hover:bg-emerald-800 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition shadow">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <span>Troli</span>
+                <span id="cart-badge" class="bg-white text-emerald-700 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Kandungan Utama -->
+    <main class="max-w-4xl mx-auto p-4">
+        <!-- Banner Kecil -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-6 text-center shadow-sm">
+            <h2 class="text-xl font-bold text-emerald-900">Pesan Terus ke WhatsApp!</h2>
+            <p class="text-sm text-emerald-700 mt-1">Pilih barangan borong atau runcit, masukkan ke troli, dan hantar pesanan anda sepantas kilat.</p>
+        </div>
+
+        <!-- Senarai Produk -->
+        <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Produk akan dijana automatik menggunakan JS -->
+        </div>
+    </main>
+
+    <!-- Modal / Drawer Troli (Add to Cart Summary) -->
+    <div id="cart-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex justify-end transition-opacity">
+        <div class="bg-white w-full max-w-md h-full shadow-2xl flex flex-col justify-between p-5 overflow-y-auto">
+            <div>
+                <!-- Header Drawer -->
+                <div class="flex justify-between items-center border-b pb-4">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-bag-shopping text-emerald-600"></i> Troli Belian Anda
+                    </h3>
+                    <button onclick="toggleCartModal(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold p-2">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Senarai Item Dalam Troli -->
+                <div id="cart-items-container" class="divide-y divide-gray-100 my-4">
+                    <!-- Item troli masuk sini -->
+                </div>
+            </div>
+
+            <!-- Bahagian Borang Ringkas & Checkout -->
+            <div class="border-t pt-4 bg-white">
+                <div class="space-y-3 mb-4">
+                    <label class="block text-xs font-semibold text-gray-600 uppercase">Maklumat Pemesan (Pilihan)</label>
+                    <input type="text" id="buyer-name" placeholder="Nama Anda / Nama Kedai" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <input type="text" id="buyer-address" placeholder="Lokasi / Alamat Penghantaran" class="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+
+                <div class="flex justify-between items-center mb-4 bg-gray-50 p-3 rounded-xl">
+                    <span class="text-sm text-gray-600 font-medium">Jumlah Keseluruhan:</span>
+                    <span class="text-xl font-extrabold text-emerald-600">RM <span id="cart-total">0.00</span></span>
+                </div>
+
+                <button onclick="sendToWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-xl"></i>
+                    <span>Hantar Pesanan ke WhatsApp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Skrip Aplikasi Penuh -->
+    <script>
+        // Data Produk Borong & Runcit
+        const products = [
+            { id: 1, name: "Gula Pasir Industri (1kg)", price: 2.80, unit: "Paket", category: "Barangan Asas" },
+            { id: 2, name: "Minyak Masak 5KG Botol", price: 31.50, unit: "Botol", category: "Minyak" },
+            { id: 3, name: "Tepung Gandum (850g)", price: 3.50, unit: "Paket", category: "Barangan Asas" },
+            { id: 4, name: "Beras Super Special 10kg", price: 38.00, unit: "Beg", category: "Beras" },
+            { id: 5, name: "Susu Pekat Manis (500g)", price: 4.20, unit: "Tin", category: "Minuman" },
+            { id: 6, name: "Kopi O Kampung (10 uncang)", price: 6.50, unit: "Kotak", category: "Minuman" }
+        ];
+
+        // Struktur Cart: { id_produk: kuantiti }
+        let cart = {};
+
+        // Paparkan produk ke skrin utama
+        function renderProducts() {
+            const listEl = document.getElementById('product-list');
+            listEl.innerHTML = products.map(p => `
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full font-medium">${p.category}</span>
+                        <h3 class="font-bold text-base text-gray-900 mt-2">${p.name}</h3>
+                        <p class="text-emerald-600 font-bold mt-1">RM ${p.price.toFixed(2)} <span class="text-xs text-gray-400 font-normal">/ ${p.unit}</span></p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
+                        <span class="text-xs text-gray-500 font-medium">Stok Tersedia</span>
+                        <button onclick="addToCart(${p.id})" class="bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-cart-plus"></i> Add to Cart
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Tambah produk ke troli
+        function addToCart(productId) {
+            if (!cart[productId]) {
+                cart[productId] = 1;
+            } else {
+                cart[productId]++;
+            }
+            updateCartUI();
+            triggerEffect();
+        }
+
+        // Ubah kuantiti dalam troli
+        function changeQty(productId, amount) {
+            cart[productId] += amount;
+            if (cart[productId] <= 0) {
+                delete cart[productId];
+            }
+            updateCartUI();
+        }
+
+        // Kemaskini paparan troli
+        function updateCartUI() {
+            let totalItems = 0;
+            let totalPrice = 0;
+            let cartItemsContainer = document.getElementById('cart-items-container');
+            let htmlContent = '';
+
+            if (Object.keys(cart).length === 0) {
+                cartItemsContainer.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fa-solid fa-cart-arrow-down text-4xl mb-2"></i>
+                        <p class="text-sm">Troli anda masih kosong.</p>
+                    </div>
+                `;
+            } else {
+                for (let id in cart) {
+                    let product = products.find(p => p.id == id);
+                    let qty = cart[id];
+                    let subtotal = product.price * qty;
+
+                    totalItems += qty;
+                    totalPrice += subtotal;
+
+                    htmlContent += `
+                        <div class="py-3 flex justify-between items-center">
+                            <div class="pr-2">
+                                <h4 class="text-sm font-bold text-gray-800">${product.name}</h4>
+                                <p class="text-xs text-emerald-600 font-semibold">RM ${product.price.toFixed(2)} x ${qty} = RM ${subtotal.toFixed(2)}</p>
+                            </div>
+                            <div class="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border">
+                                <button onclick="changeQty(${id}, -1)" class="w-7 h-7 bg-white rounded shadow-sm text-gray-700 font-bold hover:bg-gray-100 flex items-center justify-center">-</button>
+                                <span class="text-sm font-bold w-5 text-center">${qty}</span>
+                                <button onclick="changeQty(${id}, 1)" class="w-7 h-7 bg-emerald-600 rounded shadow-sm text-white font-bold hover:bg-emerald-700 flex items-center justify-center">+</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                cartItemsContainer.innerHTML = htmlContent;
+            }
+
+            document.getElementById('cart-badge').innerText = totalItems;
+            document.getElementById('cart-total').innerText = totalPrice.toFixed(2);
+        }
+
+        // Kawalan Buka/Tutup Modal Troli
+        function toggleCartModal(isOpen) {
+            const modal = document.getElementById('cart-modal');
+            if (isOpen) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Kesan animasi kecil pada badge troli
+        function triggerEffect() {
+            const badge = document.getElementById('cart-badge');
+            badge.classList.add('scale-125', 'bg-emerald-200');
+            setTimeout(() => {
+                badge.classList.remove('scale-125', 'bg-emerald-200');
+            }, 200);
+        }
+
+        // Hantar mesej terus ke WhatsApp
+        function sendToWhatsApp() {
+            if (Object.keys(cart).length === 0) {
+                alert("Sila masukkan sekurang-kurangnya satu produk ke dalam troli terlebih dahulu!");
+                return;
+            }
+
+            // TUKAR NOMBOR INI KEPADA NOMBOR WHATSAPP ANDA (Contoh: 60123456789)
+            const phoneNumber = "601XXXXXXXX"; 
+
+            const buyerName = document.getElementById('buyer-name').value.trim();
+            const buyerAddress = document.getElementById('buyer-address').value.trim();
+
+            let message = "📦 *PESANAN BARU - KEDAI BORONG*\n";
+            if (buyerName) message += `👤 Nama: ${buyerName}\n`;
+            if (buyerAddress) message += `📍 Alamat: ${buyerAddress}\n`;
+            message += `----------------------------------\n`;
+
+            let totalPrice = 0;
+            for (let id in cart) {
+                let product = products.find(p => p.id == id);
+                let qty = cart[id];
+                let subtotal = product.price * qty;
+                totalPrice += subtotal;
+                message += `• ${product.name} (x${qty}) = RM ${subtotal.toFixed(2)}\n`;
+            }
+
+            message += `----------------------------------\n`;
+            message += `💰 *JUMLAH KESELURUHAN: RM ${totalPrice.toFixed(2)}*\n\n`;
+            message += `Mohon semak stok dan sahkan pesanan ini. Terima kasih!`;
+
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+        }
+
+        renderProducts();
+        updateCartUI();
+    </script>
+</body>
+</html>
