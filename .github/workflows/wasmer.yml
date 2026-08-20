@@ -25,8 +25,9 @@ jobs:
       - name: Setup Wasmer CLI
         uses: wasmerio/setup-wasmer@v3
 
-      - name: Login to Wasmer
-        run: wasmer login --token ${{ secrets.WASMER_TOKEN }}
-
-      - name: Publish to Wasmer
-        run: wasmer publish --non-interactive
+      - name: Login and Publish to Wasmer
+        env:
+          WASMER_TOKEN: ${{ secrets.WASMER_TOKEN }}
+        run: |
+          wasmer login $WASMER_TOKEN
+          wasmer publish --non-interactive
