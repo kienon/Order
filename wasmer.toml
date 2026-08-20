@@ -1,0 +1,16 @@
+[package]
+name = "marketplace-app"
+version = "0.1.0"
+description = "Multi-vendor marketplace Next.js application"
+
+[dependencies]
+"wasmer/winterjs" = "^1.2.0"
+
+[fs]
+"/app" = "."
+
+[[command]]
+name = "run"
+runner = "https://webc.org/runner/wasi"
+module = "wasmer/winterjs"
+annotations = { wasi = { main-args = ["/app/.next/standalone/server.js"] } }
