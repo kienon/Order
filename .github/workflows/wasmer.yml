@@ -3,7 +3,7 @@ name: Publish to Wasmer
 on:
   push:
     branches:
-      - main  # Tukar ke 'master' kalau branch utama kau nama master
+      - main
 
 jobs:
   build-and-publish:
@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Boleh tukar ikut versi Node projek kau
+          node-version: '18'
 
       - name: Install dependencies & Build Next.js
         run: |
@@ -25,7 +25,8 @@ jobs:
       - name: Setup Wasmer CLI
         uses: wasmerio/setup-wasmer@v3
 
+      - name: Login to Wasmer
+        run: wasmer login --token ${{ secrets.WASMER_TOKEN }}
+
       - name: Publish to Wasmer
-        env:
-          WASMER_TOKEN: ${{ secrets.WASMER_TOKEN }}
-        run: wasmer publish
+        run: wasmer publish --non-interactive
